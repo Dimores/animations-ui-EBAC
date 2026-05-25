@@ -3,7 +3,7 @@ using NaughtyAttributes;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.UI;
 
 namespace Screens
 {
@@ -22,10 +22,26 @@ namespace Screens
         public List<Typper> listOfPhrases;
 
         public bool startHiden = false;
+        public Image uiBackground;
 
         [Header("Animation")]
         public float animationDuration = .3f;
         public float delayBetweenObjects = .5f;
+
+        private Dictionary<Transform, Vector3> _defaultScales = new();
+
+        private void Awake()
+        {
+            _defaultScales.Clear();
+
+            foreach (var obj in listOfObjects)
+            {
+                if (obj == null) continue;
+
+                if (!_defaultScales.ContainsKey(obj))
+                    _defaultScales.Add(obj, obj.localScale);
+            }
+        }
 
         private void Start()
         {
@@ -37,22 +53,44 @@ namespace Screens
             listOfPhrases.ForEach(i => i.StartType());
         }
 
+        private void CleanTexts()
+        {
+            listOfPhrases.ForEach(i => i.textMesh.text = "");
+        }
+
         [Button]
-        protected virtual void Show()
+        public virtual void Show()
         {
             if (!EditorApplication.isPlaying) return;
+
+            gameObject.SetActive(true);
+
+            CleanTexts();
             ShowObjects();
         }
 
         [Button]
-        protected virtual void Hide()
+        public virtual void Hide()
         {
             ForceHideObjects();
+            uiBackground.enabled = false;
         }
 
         private void ForceHideObjects()
         {
-            listOfObjects.ForEach(i => i.gameObject.SetActive(false));
+            foreach (var obj in listOfObjects)
+            {
+                if (obj == null) continue;
+
+                obj.DOKill();
+
+                if (_defaultScales.TryGetValue(obj, out Vector3 scale))
+                {
+                    obj.localScale = scale;
+                }
+
+                obj.gameObject.SetActive(false);
+            }
         }
 
         private void ShowObjects()
@@ -60,17 +98,43 @@ namespace Screens
             for (int i = 0; i < listOfObjects.Count; i++)
             {
                 var obj = listOfObjects[i];
+
+                if (obj == null) continue;
+
+                obj.DOKill();
+
+                if (_defaultScales.TryGetValue(obj, out Vector3 scale))
+                {
+                    obj.localScale = scale;
+                }
+
                 obj.gameObject.SetActive(true);
-                obj.DOScale(0, animationDuration).From().SetDelay(i * delayBetweenObjects);
+
+                obj.DOScale(0, animationDuration)
+                    .From()
+                    .SetDelay(i * delayBetweenObjects);
             }
 
             Invoke(nameof(StartType), listOfObjects.Count * delayBetweenObjects);
+
+            uiBackground.enabled = true;
         }
 
         private void ForceShowObjects()
         {
-            listOfObjects.ForEach(i => i.gameObject.SetActive(true));
+            foreach (var obj in listOfObjects)
+            {
+                if (obj == null) continue;
+
+                if (_defaultScales.TryGetValue(obj, out Vector3 scale))
+                {
+                    obj.localScale = scale;
+                }
+
+                obj.gameObject.SetActive(true);
+            }
+
+            uiBackground.enabled = true;
         }
     }
 }
-
