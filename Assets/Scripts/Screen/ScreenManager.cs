@@ -1,4 +1,5 @@
 using Ebac.Core.Singleton;
+using Ebac.Core.Utils;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,8 +14,13 @@ namespace Screens
 
         private ScreenBase _currentScreen;
 
+        private ScreenBase _randomScreen;
+
         private void Start()
         {
+            _randomScreen = screenBases.GetRandom();
+            Debug.Log($"Random Screen: {_randomScreen.screenType}");
+
             HideAll();
             ShowByType(startScreen);
         }
